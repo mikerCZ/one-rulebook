@@ -1,0 +1,6 @@
+.DS_Store
+__pycache__/
+# rendered on each machine by codex-sync.sh / install.sh, not committed
+codex/hooks.json
+codex/local.env
+codex/rules/local.rules

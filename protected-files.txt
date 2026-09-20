@@ -1,0 +1,5 @@
+# Basenames the protected-files hook refuses to Edit/Write/apply_patch (one per line, `#` comments).
+# Put here the generated or oversized files that must only be edited through the shell
+# (sed insert, python str.replace) — for example a multi-megabyte generated source file.
+# One example entry; replace it with your own:
+large_generated.py

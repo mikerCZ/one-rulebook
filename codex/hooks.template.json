@@ -1,0 +1,71 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/protected-files.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/instructions-in-english.sh'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/check-secrets-in-llm.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/conventional-commits.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/changelog-exists.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/xcodebuild-lock.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/rsync-no-delete.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/grok-user-agent.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/gemini-vertex-only.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/claims-need-evidence.sh'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "'__CODEX_HOME__/hooks/protected-files.sh'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

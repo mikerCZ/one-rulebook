@@ -1,0 +1,22 @@
+# Codex execpolicy rules — the LOCAL layer of this machine. install.sh renders __HOME__ into
+# ~/.claude/codex/rules/local.rules; codex-sync.sh links it into ~/.codex/rules/. Rules that need an
+# absolute path live here; the generic layer is default.rules next to it.
+
+# The read-only review wrappers may be called by Codex without a prompt.
+prefix_rule(pattern=["__HOME__/.claude/scripts/sol-review.sh", "verify"], decision="allow")
+prefix_rule(pattern=["__HOME__/.claude/scripts/agy-review.sh", "verify"], decision="allow")
+
+# The argument-locked push wrapper (rendered from codex/safe-bin/safe-branch-push.sh.template).
+prefix_rule(
+    pattern=["__HOME__/.codex/safe-bin/safe-branch-push.sh"],
+    decision="allow",
+    justification="Wrapper limited to same-name audit/* or codex/* branches on the configured GitHub owner's origins, without force, tags, or deletion; the single optional argument is --check.",
+    match=[
+        "__HOME__/.codex/safe-bin/safe-branch-push.sh",
+        "__HOME__/.codex/safe-bin/safe-branch-push.sh --check",
+    ],
+    not_match=[
+        "bash __HOME__/.codex/safe-bin/safe-branch-push.sh",
+        "git push origin main",
+    ],
+)

@@ -1,0 +1,61 @@
+# Codex execpolicy rules — the GENERIC layer, shared with the public one-rulebook export.
+# Codex scans every *.rules file under ~/.codex/rules/ at startup and applies the most restrictive
+# matching decision (learn.chatgpt.com/docs/agent-configuration/rules, read 20.9.2026), so rules
+# that carry machine-specific absolute paths or one-off commands live in local.rules next to this
+# file, and codex-sync.sh links both.
+prefix_rule(pattern=["swift", "test"], decision="allow")
+prefix_rule(pattern=["xcodebuild", "-list"], decision="allow")
+# Read-only git inspection commands that Claude allows routinely.
+prefix_rule(pattern=["git", "status"], decision="allow")
+prefix_rule(pattern=["git", "diff"], decision="allow")
+prefix_rule(pattern=["git", "log"], decision="allow")
+prefix_rule(pattern=["git", "show"], decision="allow")
+# `git branch` is only read-only in its ACTION forms. Measured 5.9.2026 in a throwaway repo:
+# `git branch -v -D tmp` deletes the branch and exits 0, and so do -vv, -q, -i and --color —
+# those are generic options that git happily combines with -D. The forms below are actions that
+# conflict with -d/-D, so git refuses (rc 128/129) instead of deleting. Bare `git branch` is not
+# listed on purpose: a prefix rule cannot allow it without allowing every flag after it.
+# -r/--remotes is left out too — `git branch -r -D origin/x` drops a remote-tracking ref.
+prefix_rule(
+    pattern=["git", "branch", ["--list", "-l", "--show-current", "-a", "--all",
+                               "--merged", "--no-merged", "--contains", "--points-at",
+                               "--format", "--sort"]],
+    decision="allow",
+    justification="Read-only branch inspection. Deletion, rename, copy and force forms are not matched and fall through to approval.",
+    match=[
+        "git branch --show-current",
+        "git branch --list",
+        "git branch -a",
+        "git branch --merged main",
+    ],
+    not_match=[
+        "git branch -D example-audit-branch",
+        "git branch -d example-audit-branch",
+        "git branch --delete example-audit-branch",
+        "git branch -m old new",
+        "git branch -M old new",
+        "git branch -C old new",
+        "git branch -f example main",
+        "git branch --force example main",
+        "git branch -v -D example-audit-branch",
+        "git branch -q -D example-audit-branch",
+        "git branch --color -D example-audit-branch",
+        "git branch new-branch",
+        "git branch -r -D origin/example",
+    ],
+)
+prefix_rule(pattern=["git", "rev-parse"], decision="allow")
+prefix_rule(pattern=["git", "ls-files"], decision="allow")
+# Simulator cleanup commands already allowed in Claude's local permissions.
+prefix_rule(pattern=["killall", "Simulator"], decision="allow")
+prefix_rule(pattern=["killall", "-9", "com.apple.CoreSimulator.CoreSimulatorService"], decision="allow")
+# Generic pushes remain possible, but require approval. For routine review
+# branches use the argument-locked safe wrapper (codex/safe-bin/safe-branch-push.sh, allowed
+# by an absolute-path rule in local.rules).
+prefix_rule(
+    pattern=["git", "push"],
+    decision="prompt",
+    justification="Generic git push can target protected branches, tags, deletions, or force updates; use safe-branch-push.sh for audit/* and codex/*.",
+    match=["git push", "git push origin main", "git push --force origin audit/example"],
+    not_match=["git status", "safe-branch-push.sh --check"],
+)

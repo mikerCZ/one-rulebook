@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>__LABEL__</string>
+
+  <!-- Regenerates ~/.codex/AGENTS.md from ~/.claude/CLAUDE.md + ~/.codex/AGENTS.codex.md and
+       re-links any skill or hook that stopped pointing at the Claude source. Deterministic,
+       no network, no model. It only ever writes the targets listed in codex-sync.sh.
+       TEMPLATE: the home path and the label are substituted by the render-plist mode of
+       codex-sync.sh (a double dash cannot appear inside an XML comment, so the flag is not
+       spelled here); install the rendering into ~/Library/LaunchAgents and bootstrap it with
+       launchctl, as install.sh describes. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>exec "$1" --apply</string>
+    <string>codex-sync</string>
+    <string>__HOME__/.claude/scripts/codex-sync.sh</string>
+  </array>
+
+  <key>WatchPaths</key>
+  <array>
+    <string>__HOME__/.claude/CLAUDE.md</string>
+    <string>__HOME__/.codex/AGENTS.codex.md</string>
+    <string>__HOME__/.claude/skills</string>
+    <string>__HOME__/.claude/hooks</string>
+  </array>
+
+  <!-- Also once an hour, so a target the importer takes back is noticed without a source edit. -->
+  <key>StartInterval</key><integer>3600</integer>
+  <key>RunAtLoad</key><true/>
+
+  <key>StandardOutPath</key><string>__HOME__/.claude/cache/codex-sync.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/.claude/cache/codex-sync.log</string>
+</dict>
+</plist>

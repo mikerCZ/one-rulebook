@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# Push the current commit to a same-named review branch (audit/* or codex/*) and nowhere else.
+# TEMPLATE: the home, user, projects-directory and GitHub-owner placeholders are substituted by
+# codex-sync.sh (render_tpl, values from codex/local.env) when it installs the wrapper into
+# ~/.codex/safe-bin/. They are constants on purpose: the wrapper must not read them from an
+# environment the caller controls.
+# The single accepted argument is an optional --check dry validation, so callers cannot add
+# force/tag/delete refspecs.
+
+set -euo pipefail
+
+check_only=0
+case "$#" in
+    0) ;;
+    1)
+        [ "$1" = "--check" ] || {
+            echo "usage: $(basename "$0") [--check]" >&2
+            exit 2
+        }
+        check_only=1
+        ;;
+    *)
+        echo "usage: $(basename "$0") [--check]" >&2
+        exit 2
+        ;;
+esac
+
+readonly GIT="/usr/bin/git"
+# The rendered constants. Quoted where they are used, and the owner is validated: it becomes part
+# of a regex below, so a value with regex metacharacters would widen the match (review, 20.9.2026).
+readonly SAFE_HOME='__HOME__'
+readonly SAFE_USER='__USER__'
+readonly PROJECTS_ROOT='__PROJECTS__'
+readonly GITHUB_OWNER='__GITHUB_OWNER__'
+# (single-quoted: a rendered value with a shell metacharacter must not become syntax; codex-sync.sh
+#  also runs `bash -n` over the rendering before installing it)
+case "$GITHUB_OWNER" in
+    ''|*[!A-Za-z0-9-]*)
+        echo "error: invalid GitHub owner in the rendered wrapper: '$GITHUB_OWNER' (set CS_GITHUB_OWNER in codex/local.env)" >&2
+        exit 1
+        ;;
+esac
+
+# Start Git with a small fixed environment. This prevents caller-controlled Git
+# variables from redirecting the repository, config, object store, helpers, or SSH.
+git_env=(
+    /usr/bin/env -i
+    HOME="$SAFE_HOME"
+    LC_ALL=C
+    LOGNAME="$SAFE_USER"
+    PATH=/usr/bin:/bin:/usr/sbin:/sbin
+    TMPDIR=/private/tmp
+    USER="$SAFE_USER"
+)
+if [ -n "${SSH_AUTH_SOCK:-}" ]; then
+    git_env+=("SSH_AUTH_SOCK=$SSH_AUTH_SOCK")
+fi
+
+repo="$("${git_env[@]}" "$GIT" rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "error: current directory is not inside a Git worktree" >&2
+    exit 1
+}
+repo="$(cd "$repo" && pwd -P)"
+
+case "$repo" in
+    "$PROJECTS_ROOT"/*) ;;
+    *)
+        echo "error: repository is outside $PROJECTS_ROOT" >&2
+        exit 1
+        ;;
+esac
+
+branch="$("${git_env[@]}" "$GIT" -C "$repo" symbolic-ref --quiet --short HEAD 2>/dev/null)" || {
+    echo "error: detached HEAD cannot be pushed by this wrapper" >&2
+    exit 1
+}
+
+"${git_env[@]}" "$GIT" check-ref-format --branch "$branch" >/dev/null
+case "$branch" in
+    audit/*|codex/*) ;;
+    *)
+        echo "error: only audit/* and codex/* branches are allowed (current: $branch)" >&2
+        exit 1
+        ;;
+esac
+
+push_url="$("${git_env[@]}" "$GIT" -C "$repo" remote get-url --push origin 2>/dev/null)" || {
+    echo "error: origin push URL is not configured" >&2
+    exit 1
+}
+if [[ ! "$push_url" =~ ^(git@github\.com:${GITHUB_OWNER}/|https://github\.com/${GITHUB_OWNER}/)[A-Za-z0-9._-]+\.git$ ]]; then
+    echo "error: origin must be a $GITHUB_OWNER GitHub repository (got: $push_url)" >&2
+    exit 1
+fi
+
+if [ "$check_only" -eq 1 ]; then
+    echo "OK: $repo:$branch may be pushed to origin:$branch"
+    exit 0
+fi
+
+echo "Pushing $repo:$branch -> origin:$branch" >&2
+exec "${git_env[@]}" "$GIT" -C "$repo" \
+    -c core.hooksPath=/dev/null \
+    push \
+    --no-follow-tags \
+    --no-signed \
+    --recurse-submodules=no \
+    --set-upstream origin "HEAD:refs/heads/$branch"

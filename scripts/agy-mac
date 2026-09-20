@@ -1,0 +1,60 @@
+#!/bin/bash
+# agy-mac — runs the Antigravity CLI (`agy`) on a remote Mac named by the REQUIRED `AGY_MAC_HOST`
+# environment variable (an ssh host or alias) and returns its output here.
+#
+# WHY AGY CANNOT RUN DIRECTLY ON THIS SERVER
+# The CPU is a QEMU "Common KVM processor" and does not expose the pclmulqdq flag in CPUID
+# (although it does expose AVX2 and AES — a combination that does not exist on real HW). The
+# agy binary fail-fast checks this at start-up and exits with:
+#   FATAL ERROR: This binary was compiled with pclmul enabled, but this feature
+#   is not available on this processor (go/sigill-fail-fast).
+# The PCLMULQDQ instruction itself physically works — only the declaration in CPUID is missing.
+# Known, unfixed bug: github.com/google-antigravity/antigravity-cli/issues/378
+#
+# The permanent fix = add +pclmulqdq to the VM's CPU model at the provider (reboot).
+# Until then agy runs on the Mac, where it is native and works without trouble.
+#
+# The arguments are sent NUL-separated over stdin, not on the command line: a prompt
+# routinely contains quotes and newlines and tends to be tens of kB, so the remote shell's
+# quoting or ARG_MAX would break it.
+#
+# Usage — identical to `agy`:
+#   agy-mac -p "prompt" --add-dir /path/to/repo --mode plan
+#   agy-mac --help
+#
+# CAUTION: --add-dir points to a path ON THE MAC, not on the server. agy ignores `cd` and
+# without --add-dir it audits an empty scratch directory and answers confidently about nothing.
+# Projects are mirrored to the Mac by rsync into ~/projects/<repo>/.
+#
+# Env: AGY_MAC_HOST (required: ssh host or alias of the Mac);
+#      AGY_GUI_TIMEOUT (s, default 1800) is propagated to the Mac.
+
+set -uo pipefail
+
+REMOTE_HOST="${AGY_MAC_HOST:-}"
+[ -n "$REMOTE_HOST" ] || { echo "agy-mac: AGY_MAC_HOST is required (ssh host or alias of the Mac)" >&2; exit 2; }
+REMOTE_SCRIPT="~/.claude/scripts/agy-gui.sh"
+
+if [ $# -eq 0 ]; then
+    echo "usage: $(basename "$0") <arguments for agy>" >&2
+    echo "  e.g.: $(basename "$0") -p \"prompt\" --add-dir ~/projects/repo --mode plan" >&2
+    echo "  note: --add-dir is a path ON THE MAC; without it agy reads an empty directory" >&2
+    exit 2
+fi
+
+# ServerAlive keeps the connection up on long runs — a review through agy routinely takes
+# 25 minutes and without keepalive it drops on the idle timeout before the reply arrives.
+printf '%s\0' "$@" | ssh -o BatchMode=yes \
+    -o ConnectTimeout=15 \
+    -o ServerAliveInterval=30 \
+    -o ServerAliveCountMax=120 \
+    ${AGY_GUI_TIMEOUT:+-o SendEnv=AGY_GUI_TIMEOUT} \
+    "$REMOTE_HOST" "AGY_GUI_TIMEOUT='${AGY_GUI_TIMEOUT:-1800}' $REMOTE_SCRIPT --argv-stdin"
+rc=$?
+
+if [ $rc -eq 255 ]; then
+    echo "agy-mac: SSH connection to '$REMOTE_HOST' failed." >&2
+    echo "         Check: ssh $REMOTE_HOST true" >&2
+fi
+
+exit $rc

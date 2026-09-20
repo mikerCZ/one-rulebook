@@ -1,0 +1,167 @@
+{
+  "env": {
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "98"
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "LS",
+      "Glob",
+      "Grep",
+      "List",
+      "WebFetch",
+      "WebSearch",
+      "Edit",
+      "Write",
+      "Bash",
+      "NotebookEdit",
+      "Task",
+      "BashOutput",
+      "KillShell",
+      "Monitor",
+      "mcp__memory__search_nodes",
+      "mcp__memory__create_entities",
+      "mcp__memory__add_observations",
+      "mcp__memory__open_nodes",
+      "mcp__memory__delete_entities",
+      "mcp__memory__delete_observations",
+      "mcp__memory__create_relations",
+      "mcp__memory__delete_relations",
+      "mcp__claude-in-chrome",
+      "Skill(update-config)",
+      "Bash(~/.claude/scripts/sol-review.sh verify:*)",
+      "Bash(~/.claude/scripts/agy-review.sh verify:*)",
+      "Bash(~/.claude/scripts/sol-review.sh:*)",
+      "Bash(~/.claude/scripts/agy-review.sh:*)",
+      "Bash(~/.claude/scripts/codex-fix.sh:*)",
+      "Bash(~/.claude/scripts/codex-quota.sh:*)",
+      "Bash(~/.claude/scripts/astra-review.sh --human-asked:*)"
+    ],
+    "deny": [
+      "mcp__memory__read_graph",
+      "Bash(git add -A)",
+      "Bash(git add -A:*)",
+      "Bash(git add --all)",
+      "Bash(git add --all:*)"
+    ],
+    "ask": [],
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-start-compact.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/precompact-snapshot.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-end-uncommitted.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/protected-files.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/instructions-in-english.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/check-secrets-in-llm.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/conventional-commits.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/changelog-exists.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/xcodebuild-lock.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/rsync-no-delete.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/grok-user-agent.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/gemini-vertex-only.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/claims-need-evidence.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
+  },
+  "effortLevel": "high",
+  "autoCompactWindow": 970000,
+  "autoCompactEnabled": true,
+  "precomputeCompactionEnabled": true,
+  "bash": {
+    "defaultTimeout": 120000,
+    "maxTimeout": 600000
+  },
+  "autoMode": {
+    "soft_deny": [
+      "$defaults",
+      "Bash(fastlane deliver:*) / TestFlight upload without explicit consent — irreversible (burned build number, deleted screenshots)",
+      "Bash(git add -A:*) — sweeps a concurrent session's work into the commit; stage explicit paths only"
+    ]
+  }
+}

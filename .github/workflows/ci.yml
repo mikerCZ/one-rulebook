@@ -1,0 +1,32 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  suites:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: tools
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get update -q && sudo apt-get install -y -q jq shellcheck; else brew install shellcheck; fi
+          jq --version; python3 --version; bash --version | head -1
+      - name: syntax
+        run: for f in hooks/*.sh scripts/*.sh install.sh hooks/tests/*.sh scripts/tests/*.sh; do bash -n "$f" || exit 1; done
+      - name: shellcheck (warnings and above)
+        run: shellcheck -S warning hooks/*.sh scripts/*.sh install.sh || true
+      - name: hooks suite
+        run: CLAUDE_HOME="$GITHUB_WORKSPACE" bash hooks/tests/test-hooks.sh
+      - name: codex-sync suite
+        run: CLAUDE_HOME="$GITHUB_WORKSPACE" bash scripts/tests/test-codex-sync.sh
+      - name: install.sh on a clean home
+        run: |
+          H=$(mktemp -d); HOME="$H" CLAUDE_HOME="$H/.claude" bash install.sh --dry-run
+          HOME="$H" CLAUDE_HOME="$H/.claude" bash install.sh
+          test -L "$H/.claude/hooks/claims-need-evidence.sh" && test -f "$H/.claude/CLAUDE.md" && test -f "$H/.claude/codex/local.env"

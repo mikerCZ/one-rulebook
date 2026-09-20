@@ -1,0 +1,2 @@
+# Proper nouns with diacritics that may appear in English instruction files (one per line).
+# Read by hooks/instructions-in-english.sh; optional.
