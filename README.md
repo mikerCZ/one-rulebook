@@ -45,7 +45,7 @@ made on the author's machine, on that day. Re-measure before relying on one.
 |---|---|---|
 | `CLAUDE.md` | the rulebook — install as `~/.claude/CLAUDE.md`, fill in the operator section | itself |
 | `hooks/` | 13 PreToolUse / SessionStart / PreCompact / SessionEnd hooks + `lib/hook-targets.py` (normalises Claude and Codex payloads) + a both-direction fixture suite | `hooks/tests/test-hooks.sh` |
-| `scripts/` | the lanes (`sol-review.sh`, `codex-fix.sh`, `astra-review.sh`, `agy-review.sh`, `review-guard.md`), quota (`codex-quota.sh`, `claude-usage.sh`), sync (`codex-sync.sh`, `codex-trust-hooks.sh`), memory tooling, App Store Connect helper, a deploy-and-verify script | `scripts/README.md` |
+| `scripts/` | the lanes (`sol-review.sh`, `codex-fix.sh`, `astra-review.sh`, `agy-review.sh`, `review-guard.md`), quota (`codex-quota.sh`, `claude-usage.sh`), sync (`codex-sync.sh`, `codex-trust-hooks.sh`), the `agy` launchers (`agy-gui.sh`, `agy-mac`) | `scripts/README.md` |
 | `skills/` | `dev-flow`, `llm-review`, `audit-briefing`, `agent-delegation`, `fix-series`, `multi-session`, `llm-apis` | each `SKILL.md` |
 | `codex/` | the Codex delta (`AGENTS.codex.md`), `hooks.template.json`, execpolicy rules, the argument-locked push wrapper, the LaunchAgent template, `local.env.example` | `codex/AGENTS.codex.md` |
 | `claude/` | `settings.example.json` (hook wiring, deny list, lane permissions) and `statusline.sh` | — |
